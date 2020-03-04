@@ -1,7 +1,7 @@
 #include "ProcessHit.hpp"
 #include <math.h>
 using namespace PETSYS;
-
+#include <iostream> 
 ProcessHit::ProcessHit(SystemConfig *systemConfig, EventStream *eventStream, EventSink<Hit> *sink) :
 OverlappedEventHandler<RawHit, Hit>(sink), systemConfig(systemConfig), eventStream(eventStream)
 {
@@ -48,6 +48,7 @@ EventBuffer<Hit> * ProcessHit::handleEvents (EventBuffer<RawHit> *inBuffer)
 			out.time = in.time;
 			out.time -= (in.tfine - 27) * 0.25;
 			out.timeEnd = out.time;
+                        out.qfine = in.efine;
 			out.energy = (in.efine == 28) ? 1 : -1;
 			out.region = -1;
 			out.x = out.y = out.z = 0.0;
@@ -75,22 +76,25 @@ EventBuffer<Hit> * ProcessHit::handleEvents (EventBuffer<RawHit> *inBuffer)
 					out.timeEnd = in.timeEnd - q_E - ce.t0;
 					if(ce.a1 == 0) eventFlags |= 0x2;
 				}
+                                out.qfine = -1.;
 				out.energy = out.timeEnd - out.time;
 			}
 			else {
 				
 				out.timeEnd = in.timeEnd;
+                                out.qfine = in.efine;
 				out.energy = in.efine;
-			
+				//std::cout<<"time end: "<<out.timeEnd<<", "<<in.timeEnd<<std::endl;	
 				if(useQDC) {
-				
+					//ti is tot branch	
 					float ti = (out.timeEnd - out.time);
-					
+					//std::cout<<"ti: "<<ti<<"time end: "<<out.timeEnd<<", time:"<<out.time<<std::endl;	
 					// Convert ADC into equivalent DC integration time t_eq
 					// Solve P(t_eq) - in.efine = 0 using Newton–Raphson method
 					// 5 iterations are more than enought
 					float p0 = cq.p0 - in.efine;
 					float t_eq = ti;
+					//std::cout<<"t_Eq: "<<t_eq<<", ti: "<<ti<<std::endl;
 					float delta = 0;
 					int iter = 0;
 					do {
@@ -130,10 +134,13 @@ EventBuffer<Hit> * ProcessHit::handleEvents (EventBuffer<RawHit> *inBuffer)
 					// .. needs better understanding.
 					out.energy = t_eq - ti ;
 					if(cq.p1 == 0) eventFlags |= 0x4;
-				
+					std::cout<<"energy"<<1<<" time"<<std::endl;
+					//std::cout<<"energy: "<<out.energy<<", t_Eq: "<<t_eq<<", ti: "<<ti<<" out.timeend: "<<out.timeEnd<<" out.time: "<<out.time<<" in.timeEnd: "<<in.timeEnd<<" in.time: "<<in.time<<std::endl;	
 					if(useEnergyCal){
 						float Energy =  cen.p0 * pow(cen.p1,pow(out.energy,cen.p2)) + cen.p3 * out.energy - cen.p0;	 
+						
 						out.energy = Energy;
+						//std::cout<<out.energy<<", "<<cen.p0<<", "<<cen.p1<<", "<<cen.p2<<", "<<cen.p3<<std::endl;
 						if(cen.p0 == 0) eventFlags |= 0x16;
 					}
 				

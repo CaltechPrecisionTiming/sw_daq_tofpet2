@@ -1,8 +1,8 @@
 #!/bin/sh
-yum -y install epel-release
+#yum -y install epel-release
 
-yum -y install gcc \
-gcc-c++ \
+#yum -y install gcc \
+sudo gcc-c++ \
 boost-devel \
 root \
 root-gui-fitpanel \
